@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Pinjaman;
 use App\Models\Angsuran;
+use App\Models\Transaksi;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class PinjamanController extends Controller
 {
@@ -25,21 +27,25 @@ class PinjamanController extends Controller
             'tgl_pengajuan'   => 'required|date',
         ]);
 
-        $count       = Pinjaman::count() + 1;
+        $count        = Pinjaman::count() + 1;
         $kodePinjaman = 'PIN-' . str_pad($count, 5, '0', STR_PAD_LEFT);
 
-        // Hitung angsuran per bulan
+        // Hitung angsuran per bulan (pokok + margin)
         $totalBayar       = $request->jumlah_pinjaman * (1 + $request->margin / 100);
-        $angsuranPerBulan = $totalBayar / $request->tenor_bulan;
+        $angsuranPerBulan = round($totalBayar / $request->tenor_bulan);
 
         $pinjaman = Pinjaman::create([
-            ...$request->all(),
+            'anggota_id'         => $request->anggota_id,
             'kode_pinjaman'      => $kodePinjaman,
+            'jumlah_pinjaman'    => $request->jumlah_pinjaman,
+            'margin'             => $request->margin,
+            'tenor_bulan'        => $request->tenor_bulan,
             'angsuran_per_bulan' => $angsuranPerBulan,
+            'tgl_pengajuan'      => $request->tgl_pengajuan,
             'status'             => 'Pengajuan',
         ]);
 
-        return response()->json($pinjaman, 201);
+        return response()->json($pinjaman->load('anggota'), 201);
     }
 
     public function show($id)
@@ -47,6 +53,58 @@ class PinjamanController extends Controller
         return response()->json(
             Pinjaman::with(['anggota', 'angsuranList'])->findOrFail($id)
         );
+    }
+
+    // Setujui pinjaman → otomatis generate jadwal angsuran
+    public function setujui($id)
+    {
+        $pinjaman = Pinjaman::findOrFail($id);
+
+        if ($pinjaman->status !== 'Pengajuan') {
+            return response()->json(['message' => 'Pinjaman sudah diproses sebelumnya'], 422);
+        }
+
+        $pinjaman->update([
+            'status'       => 'Disetujui',
+            'tgl_disetujui'=> now()->toDateString(),
+        ]);
+
+        // Generate jadwal angsuran otomatis
+        $tglMulai = Carbon::parse($pinjaman->tgl_disetujui)->addMonth();
+        for ($i = 1; $i <= $pinjaman->tenor_bulan; $i++) {
+            Angsuran::create([
+                'pinjaman_id' => $pinjaman->id,
+                'ke'          => $i,
+                'jumlah'      => $pinjaman->angsuran_per_bulan,
+                'status'      => 'Belum Bayar',
+                'jatuh_tempo' => $tglMulai->copy()->addMonths($i - 1)->toDateString(),
+            ]);
+        }
+
+        // Catat transaksi pencairan
+        $countTrx = Transaksi::count() + 1;
+        Transaksi::create([
+            'anggota_id'      => $pinjaman->anggota_id,
+            'kode_transaksi'  => 'TRX-' . str_pad($countTrx, 6, '0', STR_PAD_LEFT),
+            'jenis'           => 'Pinjaman',
+            'jumlah'          => $pinjaman->jumlah_pinjaman,
+            'tipe'            => 'Kredit',
+            'keterangan'      => 'Pencairan ' . $pinjaman->kode_pinjaman,
+            'tanggal'         => now()->toDateString(),
+        ]);
+
+        return response()->json([
+            'message'  => 'Pinjaman berhasil disetujui dan jadwal angsuran telah dibuat',
+            'pinjaman' => $pinjaman->load(['anggota', 'angsuranList']),
+        ]);
+    }
+
+    // Tolak pinjaman
+    public function tolak(Request $request, $id)
+    {
+        $pinjaman = Pinjaman::findOrFail($id);
+        $pinjaman->update(['status' => 'Ditolak']);
+        return response()->json(['message' => 'Pinjaman berhasil ditolak']);
     }
 
     public function update(Request $request, $id)

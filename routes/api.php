@@ -10,6 +10,7 @@ use App\Http\Controllers\AngsuranController;
 use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\AdminDashboardController;
 
 // ── PUBLIK (tidak perlu login) ──────────────────────────────
 Route::post('/login',  [AuthController::class, 'login']);
@@ -39,6 +40,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('pinjaman',  PinjamanController::class);
     Route::apiResource('angsuran',  AngsuranController::class);
     Route::apiResource('transaksi', TransaksiController::class);
+
+    // Aksi khusus pinjaman
+    Route::post('pinjaman/{id}/setujui', [PinjamanController::class, 'setujui']);
+    Route::post('pinjaman/{id}/tolak',   [PinjamanController::class, 'tolak']);
+
+    // Tandai angsuran lunas
+    Route::post('angsuran/{id}/lunas', [AngsuranController::class, 'lunas']);
+
+    // Admin dashboard
+    Route::get('admin/dashboard', [AdminDashboardController::class, 'index']);
 
     // Users (untuk manajemen admin)
     Route::apiResource('users', UserController::class);
