@@ -27,8 +27,9 @@ class PinjamanController extends Controller
             'tgl_pengajuan'   => 'required|date',
         ]);
 
-        $count        = Pinjaman::count() + 1;
-        $kodePinjaman = 'PIN-' . str_pad($count, 5, '0', STR_PAD_LEFT);
+        $lastPin      = Pinjaman::orderByRaw('CAST(SUBSTRING(kode_pinjaman, 5) AS UNSIGNED) DESC')->first();
+        $lastPinNum   = $lastPin ? (int) substr($lastPin->kode_pinjaman, 4) : 0;
+        $kodePinjaman = 'PIN-' . str_pad($lastPinNum + 1, 5, '0', STR_PAD_LEFT);
 
         // Hitung angsuran per bulan (pokok + margin)
         $totalBayar       = $request->jumlah_pinjaman * (1 + $request->margin / 100);
@@ -82,10 +83,11 @@ class PinjamanController extends Controller
         }
 
         // Catat transaksi pencairan
-        $countTrx = Transaksi::count() + 1;
+        $lastTrx  = Transaksi::orderByRaw('CAST(SUBSTRING(kode_transaksi, 5) AS UNSIGNED) DESC')->first();
+        $lastTrxN = $lastTrx ? (int) substr($lastTrx->kode_transaksi, 4) : 0;
         Transaksi::create([
             'anggota_id'      => $pinjaman->anggota_id,
-            'kode_transaksi'  => 'TRX-' . str_pad($countTrx, 6, '0', STR_PAD_LEFT),
+            'kode_transaksi'  => 'TRX-' . str_pad($lastTrxN + 1, 6, '0', STR_PAD_LEFT),
             'jenis'           => 'Pinjaman',
             'jumlah'          => $pinjaman->jumlah_pinjaman,
             'tipe'            => 'Kredit',

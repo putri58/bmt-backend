@@ -25,8 +25,9 @@ class SimpananController extends Controller
             'tanggal'       => 'required|date',
         ]);
 
-        $count        = Simpanan::count() + 1;
-        $kodeSimpanan = 'SMP-' . str_pad($count, 5, '0', STR_PAD_LEFT);
+        $lastSmp      = \App\Models\Simpanan::orderByRaw('CAST(SUBSTRING(kode_simpanan, 5) AS UNSIGNED) DESC')->first();
+        $lastSmpNum   = $lastSmp ? (int) substr($lastSmp->kode_simpanan, 4) : 0;
+        $kodeSimpanan = 'SMP-' . str_pad($lastSmpNum + 1, 5, '0', STR_PAD_LEFT);
 
         $simpanan = Simpanan::create([
             ...$request->all(),

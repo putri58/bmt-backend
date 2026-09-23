@@ -44,10 +44,11 @@ class AngsuranController extends Controller
         ]);
 
         // Catat transaksi pembayaran angsuran
-        $countTrx = Transaksi::count() + 1;
+        $lastTrx  = Transaksi::orderByRaw('CAST(SUBSTRING(kode_transaksi, 5) AS UNSIGNED) DESC')->first();
+        $lastTrxN = $lastTrx ? (int) substr($lastTrx->kode_transaksi, 4) : 0;
         Transaksi::create([
             'anggota_id'     => $angsuran->pinjaman->anggota_id,
-            'kode_transaksi' => 'TRX-' . str_pad($countTrx, 6, '0', STR_PAD_LEFT),
+            'kode_transaksi' => 'TRX-' . str_pad($lastTrxN + 1, 6, '0', STR_PAD_LEFT),
             'jenis'          => 'Angsuran',
             'jumlah'         => $angsuran->jumlah,
             'tipe'           => 'Debit',

@@ -24,8 +24,9 @@ class TransaksiController extends Controller
             'tanggal'    => 'required|date',
         ]);
 
-        $count          = Transaksi::count() + 1;
-        $kodeTransaksi  = 'TRX-' . str_pad($count, 6, '0', STR_PAD_LEFT);
+        $lastTrx       = Transaksi::orderByRaw('CAST(SUBSTRING(kode_transaksi, 5) AS UNSIGNED) DESC')->first();
+        $lastTrxNum    = $lastTrx ? (int) substr($lastTrx->kode_transaksi, 4) : 0;
+        $kodeTransaksi = 'TRX-' . str_pad($lastTrxNum + 1, 6, '0', STR_PAD_LEFT);
 
         $transaksi = Transaksi::create([
             ...$request->all(),

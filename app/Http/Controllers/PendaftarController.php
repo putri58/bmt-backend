@@ -33,8 +33,10 @@ class PendaftarController extends Controller
             'kode_pos'         => 'required|string',
             'email'            => 'required|email|unique:pendaftar|unique:users',
             'no_telp'          => 'required|string',
-            'username'         => 'required|unique:users|min:4',
-            'password'         => 'required|min:8',
+            // ── DATA AKUN (dinonaktifkan sementara) ──────────────────
+            // 'username'         => 'required|unique:users|min:4',
+            // 'password'         => 'required|min:8',
+            // ─────────────────────────────────────────────────────────
             'foto_identitas'   => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'foto_npwp'        => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
@@ -50,9 +52,10 @@ class PendaftarController extends Controller
                 ->store('dokumen/npwp', 'public');
         }
 
-        // Generate ID pendaftar
-        $count = Pendaftar::count() + 1;
-        $newId = 'PD-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+        // Generate ID pendaftar — ambil nomor terakhir dari pendaftar_id lalu +1
+        $lastPD  = Pendaftar::orderByRaw('CAST(SUBSTRING(pendaftar_id, 4) AS UNSIGNED) DESC')->first();
+        $lastNum = $lastPD ? (int) substr($lastPD->pendaftar_id, 3) : 0;
+        $newId   = 'PD-' . str_pad($lastNum + 1, 3, '0', STR_PAD_LEFT);
 
         // Simpan data pendaftar
         $pendaftar = Pendaftar::create([
@@ -77,16 +80,17 @@ class PendaftarController extends Controller
             'status_pendaftaran' => 'Menunggu',
         ]);
 
-        // Buat akun user dengan status pending
-        User::create([
-            'nama'         => $request->nama_anggota,
-            'username'     => $request->username,
-            'email'        => $request->email,
-            'password'     => Hash::make($request->password),
-            'role'         => 'anggota',
-            'status'       => 'pending',
-            'pendaftar_id' => $newId,
-        ]);
+        // ── BUAT AKUN USER (dinonaktifkan sementara) ──────────────────
+        // User::create([
+        //     'nama'         => $request->nama_anggota,
+        //     'username'     => $request->username,
+        //     'email'        => $request->email,
+        //     'password'     => Hash::make($request->password),
+        //     'role'         => 'anggota',
+        //     'status'       => 'pending',
+        //     'pendaftar_id' => $newId,
+        // ]);
+        // ───────────────────────────────────────────────────────────────
 
         return response()->json($pendaftar, 201);
     }
@@ -96,9 +100,10 @@ class PendaftarController extends Controller
     {
         $pendaftar = Pendaftar::findOrFail($id);
 
-        // Generate ID anggota
-        $count = Anggota::count() + 1;
-        $agtId = 'AGT-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+        // Generate ID anggota — ambil nomor terakhir dari id_anggota lalu +1
+        $lastAGT = Anggota::orderByRaw('CAST(SUBSTRING(id_anggota, 5) AS UNSIGNED) DESC')->first();
+        $lastAgtNum = $lastAGT ? (int) substr($lastAGT->id_anggota, 4) : 0;
+        $agtId   = 'AGT-' . str_pad($lastAgtNum + 1, 3, '0', STR_PAD_LEFT);
 
         // Buat record anggota baru
         $anggota = Anggota::create([
