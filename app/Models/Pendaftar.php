@@ -30,5 +30,7 @@ class Pendaftar extends Model
         'tgl_daftar',
         'foto_identitas',
         'foto_npwp',
+        'pas_foto',
+        'kantor_tujuan',
     ];
 }

@@ -22,7 +22,8 @@ class UserController extends Controller
             'username' => 'required|unique:users|min:4',
             'email'    => 'required|email|unique:users',
             'password' => 'required|min:8',
-            'role'     => 'required|in:admin,anggota',
+            'role'     => 'required|in:superadmin,admin,anggota',
+            'kantor'   => 'nullable|in:pusat,rumbai,panam,duri,cibubur',
             'status'   => 'required|in:aktif,pending,nonaktif',
         ]);
 
@@ -32,6 +33,7 @@ class UserController extends Controller
             'email'    => $request->email,
             'password' => Hash::make($request->password),
             'role'     => $request->role,
+            'kantor'   => $request->role === 'superadmin' ? null : $request->kantor,
             'status'   => $request->status,
         ]);
 
@@ -54,13 +56,18 @@ class UserController extends Controller
             'username' => "sometimes|unique:users,username,{$id}",
             'email'    => "sometimes|email|unique:users,email,{$id}",
             'password' => 'sometimes|min:8',
-            'role'     => 'sometimes|in:admin,anggota',
+            'role'     => 'sometimes|in:superadmin,admin,anggota',
+            'kantor'   => 'nullable|in:pusat,rumbai,panam,duri,cibubur',
             'status'   => 'sometimes|in:aktif,pending,nonaktif',
         ]);
 
         $data = $request->except('password');
 
-        // Update password hanya kalau dikirim
+        // Superadmin tidak punya kantor
+        if (isset($data['role']) && $data['role'] === 'superadmin') {
+            $data['kantor'] = null;
+        }
+
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }

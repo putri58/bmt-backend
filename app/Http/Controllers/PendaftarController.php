@@ -10,10 +10,19 @@ use Illuminate\Support\Facades\Hash;
 
 class PendaftarController extends Controller
 {
-    // Ambil semua pendaftar
-    public function index()
+    // Ambil pendaftar — filter by kantor jika bukan superadmin
+    public function index(Request $request)
     {
-        return response()->json(Pendaftar::orderBy('created_at', 'desc')->get());
+        $user  = $request->user();
+        $query = Pendaftar::orderBy('created_at', 'desc');
+
+        // Superadmin (role=superadmin atau kantor=null) lihat semua
+        // Admin biasa hanya lihat kantornya sendiri
+        if ($user->role !== 'superadmin' && $user->kantor !== null) {
+            $query->where('kantor_tujuan', $user->kantor);
+        }
+
+        return response()->json($query->get());
     }
 
     // Pendaftaran baru dari halaman guest
@@ -33,12 +42,10 @@ class PendaftarController extends Controller
             'kode_pos'         => 'required|string',
             'email'            => 'required|email|unique:pendaftar|unique:users',
             'no_telp'          => 'required|string',
-            // ── DATA AKUN (dinonaktifkan sementara) ──────────────────
-            // 'username'         => 'required|unique:users|min:4',
-            // 'password'         => 'required|min:8',
-            // ─────────────────────────────────────────────────────────
+            'kantor_tujuan'    => 'required|in:pusat,rumbai,panam,duri,cibubur',
             'foto_identitas'   => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
             'foto_npwp'        => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'pas_foto'         => 'required|file|mimes:jpg,jpeg,png|max:2048',
         ]);
 
         // Simpan foto identitas
@@ -52,12 +59,15 @@ class PendaftarController extends Controller
                 ->store('dokumen/npwp', 'public');
         }
 
-        // Generate ID pendaftar — ambil nomor terakhir dari pendaftar_id lalu +1
+        // Simpan pas foto
+        $pasFotoPath = $request->file('pas_foto')
+            ->store('dokumen/pas_foto', 'public');
+
+        // Generate ID pendaftar
         $lastPD  = Pendaftar::orderByRaw('CAST(SUBSTRING(pendaftar_id, 4) AS UNSIGNED) DESC')->first();
         $lastNum = $lastPD ? (int) substr($lastPD->pendaftar_id, 3) : 0;
         $newId   = 'PD-' . str_pad($lastNum + 1, 3, '0', STR_PAD_LEFT);
 
-        // Simpan data pendaftar
         $pendaftar = Pendaftar::create([
             'pendaftar_id'       => $newId,
             'nama_anggota'       => $request->nama_anggota,
@@ -74,38 +84,30 @@ class PendaftarController extends Controller
             'kode_pos'           => $request->kode_pos,
             'email'              => $request->email,
             'no_telp'            => $request->no_telp,
+            'kantor_tujuan'      => $request->kantor_tujuan,
             'foto_identitas'     => $fotoIdentitasPath,
             'foto_npwp'          => $fotoNpwpPath,
+            'pas_foto'           => $pasFotoPath,
             'tgl_daftar'         => now()->toDateString(),
             'status_pendaftaran' => 'Menunggu',
         ]);
 
-        // ── BUAT AKUN USER (dinonaktifkan sementara) ──────────────────
-        // User::create([
-        //     'nama'         => $request->nama_anggota,
-        //     'username'     => $request->username,
-        //     'email'        => $request->email,
-        //     'password'     => Hash::make($request->password),
-        //     'role'         => 'anggota',
-        //     'status'       => 'pending',
-        //     'pendaftar_id' => $newId,
-        // ]);
-        // ───────────────────────────────────────────────────────────────
-
-        return response()->json($pendaftar, 201);
+        return response()->json([
+            'message'      => 'Pendaftaran berhasil dikirim',
+            'pendaftar_id' => $newId,
+            'pendaftar'    => $pendaftar,
+        ], 201);
     }
 
-    // Setujui pendaftar → pindah ke tabel anggota + aktifkan akun
+    // Setujui pendaftar → pindah ke tabel anggota
     public function setujui($id)
     {
         $pendaftar = Pendaftar::findOrFail($id);
 
-        // Generate ID anggota — ambil nomor terakhir dari id_anggota lalu +1
-        $lastAGT = Anggota::orderByRaw('CAST(SUBSTRING(id_anggota, 5) AS UNSIGNED) DESC')->first();
+        $lastAGT    = Anggota::orderByRaw('CAST(SUBSTRING(id_anggota, 5) AS UNSIGNED) DESC')->first();
         $lastAgtNum = $lastAGT ? (int) substr($lastAGT->id_anggota, 4) : 0;
-        $agtId   = 'AGT-' . str_pad($lastAgtNum + 1, 3, '0', STR_PAD_LEFT);
+        $agtId      = 'AGT-' . str_pad($lastAgtNum + 1, 3, '0', STR_PAD_LEFT);
 
-        // Buat record anggota baru
         $anggota = Anggota::create([
             'id_anggota'       => $agtId,
             'nama_anggota'     => $pendaftar->nama_anggota,
@@ -128,13 +130,11 @@ class PendaftarController extends Controller
             'tgl_disetujui'    => now()->toDateString(),
         ]);
 
-        // Update status pendaftar
         $pendaftar->update([
             'status_pendaftaran' => 'Disetujui',
             'id_anggota'         => $agtId,
         ]);
 
-        // Aktifkan akun user dan hubungkan ke anggota
         User::where('pendaftar_id', $pendaftar->pendaftar_id)
             ->update(['status' => 'aktif', 'anggota_id' => $agtId]);
 
@@ -153,7 +153,6 @@ class PendaftarController extends Controller
             'alasan_tolak'       => $request->alasan ?? '',
         ]);
 
-        // Hapus akun user yang pending
         User::where('pendaftar_id', $pendaftar->pendaftar_id)->delete();
 
         return response()->json(['message' => 'Pendaftar berhasil ditolak']);

@@ -41,6 +41,7 @@ class AuthController extends Controller
                 'username'   => $user->username,
                 'email'      => $user->email,
                 'role'       => $user->role,
+                'kantor'     => $user->kantor,
                 'anggota_id' => $user->anggota_id,
             ]
         ]);

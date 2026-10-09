@@ -15,6 +15,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'kantor',
         'status',
         'pendaftar_id',
         'anggota_id',

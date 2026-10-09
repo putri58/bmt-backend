@@ -10,31 +10,70 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Admin
+        // Superadmin — bisa lihat semua cabang
         User::create([
-            'nama'     => 'Admin Koperasi',
-            'username' => 'admin',
-            'email'    => 'admin@bmtalittihad.id',
-            'password' => Hash::make('admin123'),
+            'nama'     => 'Super Admin',
+            'username' => 'superadmin',
+            'email'    => 'superadmin@bmtalittihad.id',
+            'password' => Hash::make('super123'),
+            'role'     => 'superadmin',
+            'kantor'   => null,
+            'status'   => 'aktif',
+        ]);
+
+        // Admin Pusat
+        User::create([
+            'nama'     => 'Admin Kantor Pusat',
+            'username' => 'admin.pusat',
+            'email'    => 'pusat@bmtalittihad.id',
+            'password' => Hash::make('pusat123'),
             'role'     => 'admin',
+            'kantor'   => 'pusat',
+            'status'   => 'aktif',
         ]);
 
-        // Anggota 1
+        // Admin Rumbai
         User::create([
-            'nama'     => 'Putri Agustin',
-            'username' => 'anggota',
-            'email'    => 'putri@email.com',
-            'password' => Hash::make('anggota123'),
-            'role'     => 'anggota',
+            'nama'     => 'Admin Cabang Rumbai',
+            'username' => 'admin.rumbai',
+            'email'    => 'rumbai@bmtalittihad.id',
+            'password' => Hash::make('rumbai123'),
+            'role'     => 'admin',
+            'kantor'   => 'rumbai',
+            'status'   => 'aktif',
         ]);
 
-        // Anggota 2
+        // Admin Panam
         User::create([
-            'nama'     => 'Sari Wulandari',
-            'username' => 'sari',
-            'email'    => 'sari@email.com',
-            'password' => Hash::make('sari123'),
-            'role'     => 'anggota',
+            'nama'     => 'Admin Cabang Panam',
+            'username' => 'admin.panam',
+            'email'    => 'panam@bmtalittihad.id',
+            'password' => Hash::make('panam123'),
+            'role'     => 'admin',
+            'kantor'   => 'panam',
+            'status'   => 'aktif',
+        ]);
+
+        // Admin Duri
+        User::create([
+            'nama'     => 'Admin Cabang Duri',
+            'username' => 'admin.duri',
+            'email'    => 'duri@bmtalittihad.id',
+            'password' => Hash::make('duri123'),
+            'role'     => 'admin',
+            'kantor'   => 'duri',
+            'status'   => 'aktif',
+        ]);
+
+        // Admin Cibubur
+        User::create([
+            'nama'     => 'Admin Cabang Cibubur',
+            'username' => 'admin.cibubur',
+            'email'    => 'cibubur@bmtalittihad.id',
+            'password' => Hash::make('cibubur123'),
+            'role'     => 'admin',
+            'kantor'   => 'cibubur',
+            'status'   => 'aktif',
         ]);
     }
 }

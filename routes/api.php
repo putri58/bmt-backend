@@ -48,7 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Tandai angsuran lunas
     Route::post('angsuran/{id}/lunas', [AngsuranController::class, 'lunas']);
 
-    // Admin dashboard
+    //Admin Dashboard
     Route::get('admin/dashboard', [AdminDashboardController::class, 'index']);
 
     // Users (untuk manajemen admin)
