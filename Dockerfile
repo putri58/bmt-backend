@@ -26,8 +26,10 @@ RUN apt-get update -y && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
+# Fix MPM conflict — disable mpm_event, enable mpm_prefork
+RUN a2dismod mpm_event || true \
+    && a2enmod mpm_prefork \
+    && a2enmod rewrite
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -57,24 +59,18 @@ RUN echo '<VirtualHost *:80>\n\
     CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
-# Startup script — Railway inject $PORT, Apache default 80
-RUN echo '#!/bin/bash\n\
+# Startup script
+RUN printf '#!/bin/bash\n\
 set -e\n\
-# Gunakan PORT dari Railway, default 80\n\
 APACHE_PORT=${PORT:-80}\n\
 sed -i "s/Listen 80/Listen $APACHE_PORT/" /etc/apache2/ports.conf\n\
 sed -i "s/*:80/*:$APACHE_PORT/" /etc/apache2/sites-available/000-default.conf\n\
-# Cache config\n\
 php artisan config:cache\n\
 php artisan route:cache\n\
-# Migrate\n\
 php artisan migrate --force --no-interaction\n\
-# Seed users\n\
 php artisan db:seed --class=UserSeeder --force\n\
-# Storage link\n\
 php artisan storage:link --force 2>/dev/null || true\n\
-# Start Apache\n\
-exec apache2-foreground' > /start.sh \
+exec apache2-foreground\n' > /start.sh \
     && chmod +x /start.sh
 
 EXPOSE 80
