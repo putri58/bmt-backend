@@ -52,4 +52,4 @@ php artisan migrate --force --no-interaction\n\
 php artisan storage:link --force\n\
 apache2-foreground' > /start.sh && chmod +x /start.sh
 
-CMD ["/start.sh"]
+CMD ["/bin/bash", "-c", "sed -i \"s/Listen 80/Listen ${PORT}/\" /etc/apache2/ports.conf && sed -i \"s/*:80/*:${PORT}/\" /etc/apache2/sites-available/000-default.conf && php artisan config:cache && php artisan route:cache && php artisan migrate --force --no-interaction && php artisan db:seed --class=UserSeeder --force && php artisan storage:link --force && apache2-foreground"]
