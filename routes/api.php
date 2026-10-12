@@ -20,6 +20,19 @@ Route::get('/ping', function () {
     return response()->json(['message' => 'API berjalan!']);
 });
 
+// TEMPORARY: seed users — hapus setelah berhasil
+Route::get('/seed-users', function () {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('db:seed', [
+            '--class' => 'UserSeeder',
+            '--force' => true,
+        ]);
+        return response()->json(['message' => 'Seeder berhasil!', 'output' => \Illuminate\Support\Facades\Artisan::output()]);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+});
+
 // ── PERLU LOGIN ─────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
 
