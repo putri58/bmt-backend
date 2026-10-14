@@ -28,11 +28,15 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interactio
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
+# PHP upload limits
+RUN echo "upload_max_filesize = 20M\npost_max_size = 20M\nmemory_limit = 256M" > /usr/local/etc/php/conf.d/uploads.ini
+
 # Nginx config
 RUN echo 'server {\n\
     listen ${PORT};\n\
     root /var/www/html/public;\n\
     index index.php;\n\
+    client_max_body_size 20M;\n\
     location / {\n\
         try_files $uri $uri/ /index.php?$query_string;\n\
     }\n\

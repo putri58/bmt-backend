@@ -7,6 +7,31 @@ use App\Models\Pendaftar;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Cloudinary\Cloudinary;
+use Cloudinary\Configuration\Configuration;
+
+class PendaftarController extends Controller
+{
+    private function uploadToCloudinary($file, string $folder): string
+    {
+        $cloudinary = new Cloudinary(
+            Configuration::instance([
+                'cloud' => [
+                    'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
+                    'api_key'    => env('CLOUDINARY_API_KEY'),
+                    'api_secret' => env('CLOUDINARY_API_SECRET'),
+                ],
+                'url' => ['secure' => true],
+            ])
+        );
+
+        $result = $cloudinary->uploadApi()->upload(
+            $file->getRealPath(),
+            ['folder' => $folder, 'resource_type' => 'auto']
+        );
+
+        return $result['secure_url'];
+    }
 
 class PendaftarController extends Controller
 {
@@ -48,20 +73,23 @@ class PendaftarController extends Controller
             'pas_foto'         => 'required|file|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        // Simpan foto identitas
-        $fotoIdentitasPath = $request->file('foto_identitas')
-            ->store('dokumen/identitas', 'public');
+        // Simpan foto identitas ke Cloudinary
+        $fotoIdentitasPath = $this->uploadToCloudinary(
+            $request->file('foto_identitas'), 'bmt/identitas'
+        );
 
         // Simpan foto NPWP kalau ada
         $fotoNpwpPath = null;
         if ($request->hasFile('foto_npwp')) {
-            $fotoNpwpPath = $request->file('foto_npwp')
-                ->store('dokumen/npwp', 'public');
+            $fotoNpwpPath = $this->uploadToCloudinary(
+                $request->file('foto_npwp'), 'bmt/npwp'
+            );
         }
 
-        // Simpan pas foto
-        $pasFotoPath = $request->file('pas_foto')
-            ->store('dokumen/pas_foto', 'public');
+        // Simpan pas foto ke Cloudinary
+        $pasFotoPath = $this->uploadToCloudinary(
+            $request->file('pas_foto'), 'bmt/pas_foto'
+        );
 
         // Generate ID pendaftar
         $lastPD  = Pendaftar::orderByRaw('CAST(SUBSTRING(pendaftar_id, 4) AS UNSIGNED) DESC')->first();
