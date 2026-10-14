@@ -33,16 +33,12 @@ class PendaftarController extends Controller
         return $result['secure_url'];
     }
 
-class PendaftarController extends Controller
-{
     // Ambil pendaftar — filter by kantor jika bukan superadmin
     public function index(Request $request)
     {
         $user  = $request->user();
         $query = Pendaftar::orderBy('created_at', 'desc');
 
-        // Superadmin (role=superadmin atau kantor=null) lihat semua
-        // Admin biasa hanya lihat kantornya sendiri
         if ($user->role !== 'superadmin' && $user->kantor !== null) {
             $query->where('kantor_tujuan', $user->kantor);
         }
@@ -68,17 +64,15 @@ class PendaftarController extends Controller
             'email'            => 'required|email|unique:pendaftar|unique:users',
             'no_telp'          => 'required|string',
             'kantor_tujuan'    => 'required|in:pusat,rumbai,panam,duri,cibubur',
-            'foto_identitas'   => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
-            'foto_npwp'        => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
-            'pas_foto'         => 'required|file|mimes:jpg,jpeg,png|max:2048',
+            'foto_identitas'   => 'required|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'foto_npwp'        => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:10240',
+            'pas_foto'         => 'required|file|mimes:jpg,jpeg,png|max:5120',
         ]);
 
-        // Simpan foto identitas ke Cloudinary
         $fotoIdentitasPath = $this->uploadToCloudinary(
             $request->file('foto_identitas'), 'bmt/identitas'
         );
 
-        // Simpan foto NPWP kalau ada
         $fotoNpwpPath = null;
         if ($request->hasFile('foto_npwp')) {
             $fotoNpwpPath = $this->uploadToCloudinary(
@@ -86,12 +80,10 @@ class PendaftarController extends Controller
             );
         }
 
-        // Simpan pas foto ke Cloudinary
         $pasFotoPath = $this->uploadToCloudinary(
             $request->file('pas_foto'), 'bmt/pas_foto'
         );
 
-        // Generate ID pendaftar
         $lastPD  = Pendaftar::orderByRaw('CAST(SUBSTRING(pendaftar_id, 4) AS UNSIGNED) DESC')->first();
         $lastNum = $lastPD ? (int) substr($lastPD->pendaftar_id, 3) : 0;
         $newId   = 'PD-' . str_pad($lastNum + 1, 3, '0', STR_PAD_LEFT);
