@@ -7,27 +7,21 @@ use App\Models\Pendaftar;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Cloudinary\Cloudinary;
-use Cloudinary\Configuration\Configuration;
 
 class PendaftarController extends Controller
 {
     private function uploadToCloudinary($file, string $folder): string
     {
-        $cloudinary = new Cloudinary(
-            Configuration::instance([
-                'cloud' => [
-                    'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
-                    'api_key'    => env('CLOUDINARY_API_KEY'),
-                    'api_secret' => env('CLOUDINARY_API_SECRET'),
-                ],
-                'url' => ['secure' => true],
-            ])
-        );
+        \Cloudinary::config([
+            'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
+            'api_key'    => env('CLOUDINARY_API_KEY'),
+            'api_secret' => env('CLOUDINARY_API_SECRET'),
+            'secure'     => true,
+        ]);
 
-        $result = $cloudinary->uploadApi()->upload(
+        $result = \Cloudinary\Uploader::upload(
             $file->getRealPath(),
-            ['folder' => $folder, 'resource_type' => 'auto']
+            ['folder' => $folder]
         );
 
         return $result['secure_url'];
