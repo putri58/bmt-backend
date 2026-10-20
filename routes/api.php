@@ -12,6 +12,20 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\AdminDashboardController;
 
+use App\Http\Controllers\BeritaController;
+
+// BERITA PUBLIK
+Route::get('/berita', [BeritaController::class, 'index']);
+Route::get('/berita/{id}', [BeritaController::class, 'show']);
+
+// BERITA ADMIN
+Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
+    Route::get('/berita', [BeritaController::class, 'adminIndex']);
+    Route::post('/berita', [BeritaController::class, 'store']);
+    Route::post('/berita/{id}', [BeritaController::class, 'update']);
+    Route::delete('/berita/{id}', [BeritaController::class, 'destroy']);
+});
+
 // ── PUBLIK (tidak perlu login) ──────────────────────────────
 Route::post('/login',  [AuthController::class, 'login']);
 Route::post('/daftar', [PendaftarController::class, 'store']);
