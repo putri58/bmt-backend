@@ -28,6 +28,9 @@ class Anggota extends Model
         'status_anggota',
         'tgl_daftar',
         'tgl_disetujui',
+        'foto_identitas',
+        'pas_foto',
+        'foto_npwp',
     ];
 
     public function simpananList()

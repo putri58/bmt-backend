@@ -142,6 +142,9 @@ class PendaftarController extends Controller
             'status_anggota'   => 'Aktif',
             'tgl_daftar'       => $pendaftar->tgl_daftar,
             'tgl_disetujui'    => now()->toDateString(),
+            'foto_identitas'   => $pendaftar->foto_identitas,
+            'pas_foto'         => $pendaftar->pas_foto,
+            'foto_npwp'        => $pendaftar->foto_npwp,
         ]);
 
         $pendaftar->update([
